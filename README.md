@@ -2,7 +2,7 @@
 
 ## Usage
 
-This is a single-file library. All you need to do is copy the file into your CPP project's src/main/include folder, and add #include LimelightHelpers.h wherever you want to use the library. You don't need to create any objects for your Limelights - the library is designed to be used in a stateless/functional manner.
+This is a single-file, header-only library. All you need to do is copy the file into your CPP project's src/main/include folder, and add #include LimelightHelpers.h wherever you want to use the library. You don't need to create any objects for your Limelights - the library is designed to be used in a stateless/functional manner.
 
 ### Basic Usage
 Every method in Limelightlib accepts a string parameter indicating the correct Limelight to use. If left blank or null, the name is assumed to be "limelight"
