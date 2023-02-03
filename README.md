@@ -1,4 +1,4 @@
-# Limelightlib (WPILIB Java)
+# Limelightlib (WPILIB CPP)
 
 ## Usage
 
