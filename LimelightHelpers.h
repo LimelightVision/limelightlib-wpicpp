@@ -14,231 +14,8 @@
 
 namespace LimelightHelpers
 {
-    inline const double INVALID_TARGET = 0.0;
 
-    class SingleTargetingResultClass
-    {
-    public:
-        SingleTargetingResultClass(){};
-        ~SingleTargetingResultClass(){};
-        double _TargetXPixels{INVALID_TARGET};
-        double _TargetYPixels{INVALID_TARGET};
 
-        double _TargetXNormalized{INVALID_TARGET};
-        double _TargetYNormalized{INVALID_TARGET};
-
-        double _TargetXNormalizedCrosshairAdjusted{INVALID_TARGET};
-        double _TargetYNormalizedCrosshairAdjusted{INVALID_TARGET};
-
-        double _TargetXDegreesCrosshairAdjusted{INVALID_TARGET};
-        double _TargetYDegreesCrosshairAdjusted{INVALID_TARGET};
-
-        double _TargetAreaPixels{INVALID_TARGET};
-        double _TargetAreaNormalized{INVALID_TARGET};
-        double _TargetAreaNormalizedPercentage{INVALID_TARGET};
-
-        // not included in json//
-        double _timeStamp{-1.0};
-        float _TargetLatency{0};
-        double _pipelineIndex{-1.0};
-        std::vector<std::vector<double>> _TargetCorners;
-
-        std::vector<double> m_CAMERATransform6DTARGETSPACE;
-        std::vector<double> m_TargetTransform6DCAMERASPACE;
-        std::vector<double> m_TargetTransform6DROBOTSPACE;
-        std::vector<double> m_ROBOTTransform6DTARGETSPACE;
-        std::vector<double> m_ROBOTTransform6DFIELDSPACE;
-    };
-
-    class RetroreflectiveResultClass : public SingleTargetingResultClass
-    {
-    public:
-        RetroreflectiveResultClass() {}
-        ~RetroreflectiveResultClass() {}
-    };
-
-    class FiducialResultClass : public SingleTargetingResultClass
-    {
-    public:
-        FiducialResultClass() {}
-        ~FiducialResultClass() {}
-        int _fiducialID{0};
-        std::string _family{""};
-    };
-
-    class DetectionResultClass : public SingleTargetingResultClass
-    {
-    public:
-        DetectionResultClass() {}
-        ~DetectionResultClass() {}
-
-        int _classID{-1};
-        std::string _className{""};
-        double _confidence{0};
-    };
-
-    class ClassificationResultClass : public SingleTargetingResultClass
-    {
-    public:
-        ClassificationResultClass() {}
-        ~ClassificationResultClass() {}
-
-        int _classID{-1};
-        std::string _className{""};
-        double _confidence{0};
-    };
-
-    inline const std::string _key_timestamp{"ts"};
-    inline const std::string _key_latency{"tl"};
-    inline const std::string _key_pipelineIndex{"pID"};
-    inline const std::string _key_TargetXDegrees{"txdr"};
-    inline const std::string _key_TargetYDegrees{"tydr"};
-    inline const std::string _key_TargetXNormalized{"txnr"};
-    inline const std::string _key_TargetYNormalized{"tynr"};
-    inline const std::string _key_TargetXPixels{"txp"};
-    inline const std::string _key_TargetYPixels{"typ"};
-
-    inline const std::string _key_TargetXDegreesCrosshair{"tx"};
-    inline const std::string _key_TargetYDegreesCrosshair{"ty"};
-    inline const std::string _key_TargetXNormalizedCrosshair{"txn"};
-    inline const std::string _key_TargetYNormalizedCrosshair{"tyn"};
-    inline const std::string _key_TargetAreaNormalized{"ta"};
-    inline const std::string _key_TargetAreaPixels{"tap"};
-    inline const std::string _key_className{"class"};
-    inline const std::string _key_classID{"classID"};
-    inline const std::string _key_confidence{"conf"};
-    inline const std::string _key_fiducialID{"fID"};
-    inline const std::string _key_corners{"pts"};
-    inline const std::string _key_transformCAMERAPOSE_TARGETSPACE{"t6c_ts"};
-    inline const std::string _key_transformTARGETPOSE_CAMERASPACE{"t6t_cs"};
-    inline const std::string _key_transformROBOTPOSE_TARGETSPACE{"t6r_ts"};
-    inline const std::string _key_transformTARGETPOSE_ROBOTSPACE{"t6t_rs"};
-
-    inline const std::string _key_transformROBOTPOSE_FIELDSPACE{"t6r_fs"};
-    inline const std::string _key_skew{"skew"};
-    inline const std::string _key_ffamily{"fam"};
-    inline const std::string _key_colorRGB{"cRGB"};
-    inline const std::string _key_colorHSV{"cHSV"};
-
-    inline void from_json(const wpi::json &j, RetroreflectiveResultClass &t)
-    {
-        t.m_CAMERATransform6DTARGETSPACE = j.at(_key_transformCAMERAPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DCAMERASPACE = j.at(_key_transformTARGETPOSE_CAMERASPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DROBOTSPACE = j.at(_key_transformTARGETPOSE_ROBOTSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DTARGETSPACE = j.at(_key_transformROBOTPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DFIELDSPACE = j.at(_key_transformROBOTPOSE_FIELDSPACE).get<std::vector<double>>();
-        t._TargetXPixels = j.at(_key_TargetXPixels).get<double>();
-        t._TargetYPixels = j.at(_key_TargetYPixels).get<double>();
-        t._TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
-        t._TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
-        t._TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
-        t._TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
-    }
-
-    inline void from_json(const wpi::json &j, FiducialResultClass &t)
-    {
-        t._family = j.at(_key_ffamily).get<std::string>();
-        t._fiducialID = j.at(_key_fiducialID).get<double>();
-        t.m_CAMERATransform6DTARGETSPACE = j.at(_key_transformCAMERAPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DCAMERASPACE = j.at(_key_transformTARGETPOSE_CAMERASPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DROBOTSPACE = j.at(_key_transformTARGETPOSE_ROBOTSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DTARGETSPACE = j.at(_key_transformROBOTPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DFIELDSPACE = j.at(_key_transformROBOTPOSE_FIELDSPACE).get<std::vector<double>>();
-        t._TargetXPixels = j.at(_key_TargetXPixels).get<double>();
-        t._TargetYPixels = j.at(_key_TargetYPixels).get<double>();
-        t._TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
-        t._TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
-        t._TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
-        t._TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
-    }
-
-    inline void from_json(const wpi::json &j, DetectionResultClass &t)
-    {
-        t._confidence = j.at(_key_confidence).get<double>();
-        t._classID = j.at(_key_classID).get<double>();
-        t._className = j.at(_key_className).get<std::string>();
-        t._TargetXPixels = j.at(_key_TargetXPixels).get<double>();
-        t._TargetYPixels = j.at(_key_TargetYPixels).get<double>();
-        t._TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
-        t._TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
-        t._TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
-        t._TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
-    }
-
-    inline void from_json(const wpi::json &j, ClassificationResultClass &t)
-    {
-        t._confidence = j.at(_key_confidence).get<double>();
-        t._classID = j.at(_key_classID).get<double>();
-        t._className = j.at(_key_className).get<std::string>();
-        t._TargetXPixels = j.at(_key_TargetXPixels).get<double>();
-        t._TargetYPixels = j.at(_key_TargetYPixels).get<double>();
-        t._TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
-        t._TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
-        t._TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
-        t._TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
-    }
-
-    class VisionResultsClass
-    {
-    public:
-        VisionResultsClass() {}
-        ~VisionResultsClass() {}
-        std::vector<RetroreflectiveResultClass> RetroResults;
-        std::vector<FiducialResultClass> FiducialResults;
-        std::vector<DetectionResultClass> DetectionResults;
-        std::vector<ClassificationResultClass> ClassificationResults;
-        double _timeStamp{-1.0};
-        double _TargetLatency{0};
-        double _JsonParseLatency{0};
-        double _pipelineIndex{-1.0};
-        int valid{0};
-        std::vector<double> botPose;
-        std::vector<double> botPose_wpired;
-        std::vector<double> botPose_wpiblue;
-        void Clear()
-        {
-            RetroResults.clear();
-            FiducialResults.clear();
-            DetectionResults.clear();
-            ClassificationResults.clear();
-            botPose.clear();
-            botPose_wpired.clear();
-            botPose_wpiblue.clear();
-            _timeStamp = -1.0;
-            _TargetLatency = 0;
-            _pipelineIndex = -1.0;
-        }
-    };
-
-    inline void from_json(const wpi::json &j, VisionResultsClass &t)
-    {
-        t._timeStamp = j.at(_key_timestamp).get<double>();
-        t._TargetLatency = j.at(_key_latency).get<double>();
-        t._pipelineIndex = j.at(_key_pipelineIndex).get<double>();
-        t.valid = j.at("v").get<double>();
-
-        t.botPose = j.at("botpose").get<std::vector<double>>();
-        t.botPose_wpired = j.at("botpose_wpired").get<std::vector<double>>();
-        t.botPose_wpiblue = j.at("botpose_wpiblue").get<std::vector<double>>();
-
-        t.RetroResults = j.at("Retro").get<std::vector<RetroreflectiveResultClass>>();
-        t.FiducialResults = j.at("Fiducial").get<std::vector<FiducialResultClass>>();
-        t.DetectionResults = j.at("Detector").get<std::vector<DetectionResultClass>>();
-        t.ClassificationResults = j.at("Detector").get<std::vector<ClassificationResultClass>>();
-    }
-
-    class LimelightResultsClass
-    {
-    public:
-        LimelightResultsClass() {}
-        ~LimelightResultsClass() {}
-        VisionResultsClass targetingResults;
-    };
-
-    inline void from_json(const wpi::json &j, LimelightResultsClass &t)
-    {
-        t.targetingResults = j.at("Results").get<VisionResultsClass>();
-    }
 
     inline std::string sanitizeName(const std::string &name)
     {
@@ -439,6 +216,119 @@ namespace LimelightHelpers
     /////
     /////
 
+    inline const double INVALID_TARGET = 0.0;
+    class SingleTargetingResultClass
+    {
+    public:
+        SingleTargetingResultClass(){};
+        ~SingleTargetingResultClass(){};
+        double m_TargetXPixels{INVALID_TARGET};
+        double m_TargetYPixels{INVALID_TARGET};
+
+        double m_TargetXNormalized{INVALID_TARGET};
+        double m_TargetYNormalized{INVALID_TARGET};
+
+        double m_TargetXNormalizedCrosshairAdjusted{INVALID_TARGET};
+        double m_TargetYNormalizedCrosshairAdjusted{INVALID_TARGET};
+
+        double m_TargetXDegreesCrosshairAdjusted{INVALID_TARGET};
+        double m_TargetYDegreesCrosshairAdjusted{INVALID_TARGET};
+
+        double m_TargetAreaPixels{INVALID_TARGET};
+        double m_TargetAreaNormalized{INVALID_TARGET};
+        double m_TargetAreaNormalizedPercentage{INVALID_TARGET};
+
+        // not included in json//
+        double m_timeStamp{-1.0};
+        double m_TargetLatency{0};
+        double m_pipelineIndex{-1.0};
+        std::vector<std::vector<double>> m_TargetCorners;
+
+        std::vector<double> m_CAMERATransform6DTARGETSPACE;
+        std::vector<double> m_TargetTransform6DCAMERASPACE;
+        std::vector<double> m_TargetTransform6DROBOTSPACE;
+        std::vector<double> m_ROBOTTransform6DTARGETSPACE;
+        std::vector<double> m_ROBOTTransform6DFIELDSPACE;
+    };
+
+    class RetroreflectiveResultClass : public SingleTargetingResultClass
+    {
+    public:
+        RetroreflectiveResultClass() {}
+        ~RetroreflectiveResultClass() {}
+    };
+
+    class FiducialResultClass : public SingleTargetingResultClass
+    {
+    public:
+        FiducialResultClass() {}
+        ~FiducialResultClass() {}
+        int m_fiducialID{0};
+        std::string m_family{""};
+    };
+
+    class DetectionResultClass : public SingleTargetingResultClass
+    {
+    public:
+        DetectionResultClass() {}
+        ~DetectionResultClass() {}
+
+        int m_classID{-1};
+        std::string m_className{""};
+        double m_confidence{0};
+    };
+
+    class ClassificationResultClass : public SingleTargetingResultClass
+    {
+    public:
+        ClassificationResultClass() {}
+        ~ClassificationResultClass() {}
+
+        int m_classID{-1};
+        std::string m_className{""};
+        double m_confidence{0};
+    };
+
+    class VisionResultsClass
+    {
+    public:
+        VisionResultsClass() {}
+        ~VisionResultsClass() {}
+        std::vector<RetroreflectiveResultClass> RetroResults;
+        std::vector<FiducialResultClass> FiducialResults;
+        std::vector<DetectionResultClass> DetectionResults;
+        std::vector<ClassificationResultClass> ClassificationResults;
+        double m_timeStamp{-1.0};
+        double m_TargetLatency{0};
+        double m_JsonParseLatency{0};
+        double m_pipelineIndex{-1.0};
+        int valid{0};
+        std::vector<double> botPose;
+        std::vector<double> botPose_wpired;
+        std::vector<double> botPose_wpiblue;
+        void Clear()
+        {
+            RetroResults.clear();
+            FiducialResults.clear();
+            DetectionResults.clear();
+            ClassificationResults.clear();
+            botPose.clear();
+            botPose_wpired.clear();
+            botPose_wpiblue.clear();
+            m_timeStamp = -1.0;
+            m_TargetLatency = 0;
+            m_pipelineIndex = -1.0;
+        }
+    };
+
+    class LimelightResultsClass
+    {
+    public:
+        LimelightResultsClass() {}
+        ~LimelightResultsClass() {}
+        VisionResultsClass targetingResults;
+    };
+
     inline LimelightResultsClass getLatestResults(const std::string &limelightName = "", bool profile = false)
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -449,13 +339,128 @@ namespace LimelightHelpers
         double millis = (nanos * 0.000001);
 
         LimelightResultsClass out = data.get<LimelightResultsClass>();
-        out.targetingResults._JsonParseLatency = millis;
+        out.targetingResults.m_JsonParseLatency = millis;
         if (profile)
         {
             std::cout << "lljson: " << millis << std::endl;
         }
         return out;
     }
+
+    inline const std::string _key_timestamp{"ts"};
+    inline const std::string _key_latency{"tl"};
+    inline const std::string _key_pipelineIndex{"pID"};
+    inline const std::string _key_TargetXDegrees{"txdr"};
+    inline const std::string _key_TargetYDegrees{"tydr"};
+    inline const std::string _key_TargetXNormalized{"txnr"};
+    inline const std::string _key_TargetYNormalized{"tynr"};
+    inline const std::string _key_TargetXPixels{"txp"};
+    inline const std::string _key_TargetYPixels{"typ"};
+
+    inline const std::string _key_TargetXDegreesCrosshair{"tx"};
+    inline const std::string _key_TargetYDegreesCrosshair{"ty"};
+    inline const std::string _key_TargetXNormalizedCrosshair{"txn"};
+    inline const std::string _key_TargetYNormalizedCrosshair{"tyn"};
+    inline const std::string _key_TargetAreaNormalized{"ta"};
+    inline const std::string _key_TargetAreaPixels{"tap"};
+    inline const std::string _key_className{"class"};
+    inline const std::string _key_classID{"classID"};
+    inline const std::string _key_confidence{"conf"};
+    inline const std::string _key_fiducialID{"fID"};
+    inline const std::string _key_corners{"pts"};
+    inline const std::string _key_transformCAMERAPOSE_TARGETSPACE{"t6c_ts"};
+    inline const std::string _key_transformTARGETPOSE_CAMERASPACE{"t6t_cs"};
+    inline const std::string _key_transformROBOTPOSE_TARGETSPACE{"t6r_ts"};
+    inline const std::string _key_transformTARGETPOSE_ROBOTSPACE{"t6t_rs"};
+
+    inline const std::string _key_transformROBOTPOSE_FIELDSPACE{"t6r_fs"};
+    inline const std::string _key_skew{"skew"};
+    inline const std::string _key_ffamily{"fam"};
+    inline const std::string _key_colorRGB{"cRGB"};
+    inline const std::string _key_colorHSV{"cHSV"};
+
+    inline void from_json(const wpi::json &j, RetroreflectiveResultClass &t)
+    {
+        t.m_CAMERATransform6DTARGETSPACE = j.at(_key_transformCAMERAPOSE_TARGETSPACE).get<std::vector<double>>();
+        t.m_TargetTransform6DCAMERASPACE = j.at(_key_transformTARGETPOSE_CAMERASPACE).get<std::vector<double>>();
+        t.m_TargetTransform6DROBOTSPACE = j.at(_key_transformTARGETPOSE_ROBOTSPACE).get<std::vector<double>>();
+        t.m_ROBOTTransform6DTARGETSPACE = j.at(_key_transformROBOTPOSE_TARGETSPACE).get<std::vector<double>>();
+        t.m_ROBOTTransform6DFIELDSPACE = j.at(_key_transformROBOTPOSE_FIELDSPACE).get<std::vector<double>>();
+        t.m_TargetXPixels = j.at(_key_TargetXPixels).get<double>();
+        t.m_TargetYPixels = j.at(_key_TargetYPixels).get<double>();
+        t.m_TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
+        t.m_TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
+        t.m_TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
+        t.m_TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
+    }
+
+    inline void from_json(const wpi::json &j, FiducialResultClass &t)
+    {
+        t.m_family = j.at(_key_ffamily).get<std::string>();
+        t.m_fiducialID = j.at(_key_fiducialID).get<double>();
+        t.m_CAMERATransform6DTARGETSPACE = j.at(_key_transformCAMERAPOSE_TARGETSPACE).get<std::vector<double>>();
+        t.m_TargetTransform6DCAMERASPACE = j.at(_key_transformTARGETPOSE_CAMERASPACE).get<std::vector<double>>();
+        t.m_TargetTransform6DROBOTSPACE = j.at(_key_transformTARGETPOSE_ROBOTSPACE).get<std::vector<double>>();
+        t.m_ROBOTTransform6DTARGETSPACE = j.at(_key_transformROBOTPOSE_TARGETSPACE).get<std::vector<double>>();
+        t.m_ROBOTTransform6DFIELDSPACE = j.at(_key_transformROBOTPOSE_FIELDSPACE).get<std::vector<double>>();
+        t.m_TargetXPixels = j.at(_key_TargetXPixels).get<double>();
+        t.m_TargetYPixels = j.at(_key_TargetYPixels).get<double>();
+        t.m_TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
+        t.m_TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
+        t.m_TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
+        t.m_TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
+    }
+
+    inline void from_json(const wpi::json &j, DetectionResultClass &t)
+    {
+        t.m_confidence = j.at(_key_confidence).get<double>();
+        t.m_classID = j.at(_key_classID).get<double>();
+        t.m_className = j.at(_key_className).get<std::string>();
+        t.m_TargetXPixels = j.at(_key_TargetXPixels).get<double>();
+        t.m_TargetYPixels = j.at(_key_TargetYPixels).get<double>();
+        t.m_TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
+        t.m_TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
+        t.m_TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
+        t.m_TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
+    }
+
+    inline void from_json(const wpi::json &j, ClassificationResultClass &t)
+    {
+        t.m_confidence = j.at(_key_confidence).get<double>();
+        t.m_classID = j.at(_key_classID).get<double>();
+        t.m_className = j.at(_key_className).get<std::string>();
+        t.m_TargetXPixels = j.at(_key_TargetXPixels).get<double>();
+        t.m_TargetYPixels = j.at(_key_TargetYPixels).get<double>();
+        t.m_TargetXDegreesCrosshairAdjusted = j.at(_key_TargetXDegreesCrosshair).get<double>();
+        t.m_TargetYDegreesCrosshairAdjusted = j.at(_key_TargetYDegreesCrosshair).get<double>();
+        t.m_TargetAreaNormalized = j.at(_key_TargetAreaNormalized).get<double>();
+        t.m_TargetCorners = j.at(_key_corners).get<std::vector<std::vector<double>>>();
+    }
+
+    inline void from_json(const wpi::json &j, VisionResultsClass &t)
+    {
+        t.m_timeStamp = j.at(_key_timestamp).get<double>();
+        t.m_TargetLatency = j.at(_key_latency).get<double>();
+        t.m_pipelineIndex = j.at(_key_pipelineIndex).get<double>();
+        t.valid = j.at("v").get<double>();
+
+        t.botPose = j.at("botpose").get<std::vector<double>>();
+        t.botPose_wpired = j.at("botpose_wpired").get<std::vector<double>>();
+        t.botPose_wpiblue = j.at("botpose_wpiblue").get<std::vector<double>>();
+
+        t.RetroResults = j.at("Retro").get<std::vector<RetroreflectiveResultClass>>();
+        t.FiducialResults = j.at("Fiducial").get<std::vector<FiducialResultClass>>();
+        t.DetectionResults = j.at("Detector").get<std::vector<DetectionResultClass>>();
+        t.ClassificationResults = j.at("Detector").get<std::vector<ClassificationResultClass>>();
+    }
+
+    inline void from_json(const wpi::json &j, LimelightResultsClass &t)
+    {
+        t.targetingResults = j.at("Results").get<VisionResultsClass>();
+    }
+
+
+    
 }
 
 #endif // LIMELIGHTHELPERS_H
