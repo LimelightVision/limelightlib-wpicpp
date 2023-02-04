@@ -15,8 +15,6 @@
 namespace LimelightHelpers
 {
 
-
-
     inline std::string sanitizeName(const std::string &name)
     {
         if (name == "")
@@ -458,9 +456,6 @@ namespace LimelightHelpers
     {
         t.targetingResults = j.at("Results").get<VisionResultsClass>();
     }
-
-
-    
 }
 
 #endif // LIMELIGHTHELPERS_H
