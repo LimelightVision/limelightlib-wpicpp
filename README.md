@@ -2,35 +2,35 @@
 
 ## Usage
 
-This is a single-file library. All you need to do is copy the file into your Java project's "robot" folder. You don't need to create any objects for your Limelights - the library is designed to be used in a functional manner.
+This is a single-file library. All you need to do is copy the file into your CPP project's src/main/include folder, and add #include LimelightHelpers.h wherever you want to use the library. You don't need to create any objects for your Limelights - the library is designed to be used in a stateless/functional manner.
 
 ### Basic Usage
 Every method in Limelightlib accepts a string parameter indicating the correct Limelight to use. If left blank or null, the name is assumed to be "limelight"
 ```
-LimelightHelpers.setLEDMode_PipelineControl("");
-LimelightHelpers.setLEDMode_ForceBlink("")
-LimelightHelpers.setCropWindow("",-1,1,-1,1);
-double tx = LimelightHelpers.getTX("");
+LimelightHelpers::setLEDMode_PipelineControl("");
+LimelightHelpers::setLEDMode_ForceBlink("")
+LimelightHelpers::setCropWindow("",-1,1,-1,1);
+double tx = LimelightHelpers::getTX("");
 ```
 
 ### JSON Parsing
-getLatestResults() parses the latest Limelight JSON dump into a LimelightResults object.
+getLatestResults() parses the latest Limelight JSON dump into a LimelightResultsClass object.
 Takes up to 2.5ms on RoboRIO 1.0. Parsing latency is logged in results.targetingresults.latency_jsonParse and may be added to latency_pipeline and latency_capture.
 
 ```
-LimelightResults llresults = LimelightHelpers.getLatestResults("");
+LimelightResultsClass llresults = LimelightHelpers::getLatestResults("");
 ```
-Each LimelightResults instance contains a Results object. Each Results object contains data such as botpose, an array for each target type, etc. With getLatestResults(), you now have easy access to 100% of your Limelight's output.
+Each LimelightResultsClass instance contains a Results object. Each Results object contains data such as botpose, an array for each target type, etc. With getLatestResults(), you now have easy access to 100% of your Limelight's output.
 
 ```
-double[] botposeRed = llresults.results.botpose_wpired;
-double pipelineLatency = llresults.results.latency_pipeline;
-LimelightTarget_Fiducial = llresults.results.targets_Fiducials;
+std::vector<double> botposeRed = llresults.results.botPose_wpired;
+double pipelineLatency = llresults.results._TargetLatency;
+FiducialResultClass = llresults.results.FiducialResults;
 ```
 
-### Taking snapshots
+### Taking snapshots (wip in cpp lib)
 ```
-LimelightHelpers.takeSnapshot("","snapshotname");
+LimelightHelpers::takeSnapshot("","snapshotname");
 ```
 
 ### Classes
@@ -45,7 +45,7 @@ LimelightResults
 (Pure Static) LimelightHelpers
 ```
 
-### LimelightHelpers Methods
+### LimelightHelpers Methods (wip)
 ```
 getLimelightNTTable()
 getLimelightNTTableEntry()
