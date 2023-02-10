@@ -1,0 +1,28 @@
+name: Java CI
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.14
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-22.04, macos-11, windows-2022]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Set up Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.11
+
+    - name: Build Everything
+      run: ./gradlew build
