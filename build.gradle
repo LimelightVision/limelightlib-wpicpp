@@ -1,0 +1,115 @@
+
+plugins {
+    id "cpp"
+    id "edu.wpi.first.NativeUtils" version "2023.11.1"
+    id "edu.wpi.first.wpilib.repositories.WPILibRepositoriesPlugin" version "2020.2"
+    id 'edu.wpi.first.WpilibTools' version '1.0.0'
+    id 'maven-publish'
+    id "google-test-test-suite"
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+    wpilibRepositories.addAllReleaseRepositories(it)
+    wpilibRepositories.addAllDevelopmentRepositories(it)
+}
+
+ext {
+    wpilibVersion = "2023.3.2"
+    groupId = "io.limelightvision"
+}
+wpilibTools.deps.wpilibVersion = wpilibVersion
+
+// Configure Native-Utils WPI Plugin
+nativeUtils.addWpiNativeUtils()
+nativeUtils.withCrossRoboRIO()
+
+// Configure WPI dependencies.
+nativeUtils.wpi.configureDependencies {
+    wpiVersion = wpilibVersion
+    wpimathVersion = wpilibVersion
+    googleTestVersion = "1.11.0-4"
+}
+
+// Configure warnings and errors
+nativeUtils.wpi.addWarnings()
+nativeUtils.wpi.addWarningsAsErrors()
+
+nativeUtils {
+    exportsConfigs {
+        // Main library is just default empty. This will export everything
+        LimelightHelpers {
+        }
+    }
+}
+
+// Enable builds for all platforms.
+model {
+    components {
+        all {
+            nativeUtils.useAllPlatforms(it)
+        }
+    }
+    binaries {
+        withType(NativeBinarySpec).all {
+            nativeUtils.usePlatformArguments(it)
+        }
+    }
+}
+
+model {
+    components {
+        LimelightHelpers(NativeLibrarySpec) {
+            sources.cpp.exportedHeaders {
+                srcDirs "."
+            }
+        }
+    }
+    testSuites {
+        cppTest(GoogleTestTestSuiteSpec) {
+            testing $.components.LimelightHelpers
+
+            sources.cpp.source {
+                srcDir "."
+                include "LimelightHelpersTest.cpp"
+            }
+
+            nativeUtils.useRequiredLibrary(it, "wpilib_executable_static")
+            nativeUtils.useRequiredLibrary(it, "googletest_static")
+        }
+    }
+}
+
+
+task cppHeadersZip(type: Zip) {
+    destinationDirectory = file("$buildDir/outputs")
+    archiveBaseName = "zipBaseName"
+    classifier = "headers"
+
+    from('.') {
+        into '/'
+        include '*.h'
+    }
+}
+build.dependsOn cppHeadersZip
+
+
+publishing {
+
+    repositories {
+        maven {
+            url "${rootDir}/build/maven_output"
+        }
+    }
+
+    publications {
+
+        publish_headers(MavenPublication) {
+            groupId "${project.groupId}"
+            version "${project.version}"
+            artifact cppHeadersZip
+        }
+    }
+}

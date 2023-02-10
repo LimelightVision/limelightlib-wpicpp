@@ -1,0 +1,23 @@
+
+{
+    "fileName": "LimelightHelpers-cpp.json",
+    "name": "LimelightHelpers-cpp",
+    "version": "$VERSION",
+    "uuid": "$GUID",
+    "mavenUrls": ["https://raw.githubusercontent.com/LimelightVision/maven_repo/master"],
+    "jsonUrl": "http://raw.githubusercontent.com/LimelightVision/maven_repo/master/LimelightHelpers-cpp.json",
+    "javaDependencies": [],
+    "jniDependencies": [],
+    "cppDependencies": [
+      {
+        "groupId": "io.limelightvision",
+        "artifactId": "limelightlib-wpicpp",
+        "headerClassifier": "headers",
+        "version": "$VERSION",
+        "sharedLibrary": false,
+        "skipInvalidPlatforms": true,
+        "binaryPlatforms": []
+      }
+    ]
+}
+
