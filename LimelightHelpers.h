@@ -9,13 +9,26 @@
 #include "networktables/NetworkTableInstance.h"
 #include "networktables/NetworkTableEntry.h"
 #include "networktables/NetworkTableValue.h"
+#include <wpinet/PortForwarder.h>
 #include "wpi/json.h"
 #include <string>
 #include <unistd.h>
+//#include <curl/curl.h>
 #include <vector>
 #include <chrono>
 #include <iostream>
-
+#include <frc/geometry/Translation2d.h>
+#include <frc/geometry/Translation3d.h>
+#include <frc/geometry/Pose2d.h>
+#include <frc/geometry/Pose3d.h>
+#include <frc/geometry/Rotation2d.h>
+#include <frc/geometry/Rotation3d.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <cstring>
+#include <fcntl.h>
+    
 namespace LimelightHelpers
 {
     inline std::string sanitizeName(const std::string &name)
@@ -25,6 +38,29 @@ namespace LimelightHelpers
             return "limelight";
         }
         return name;
+    }
+
+    inline frc::Pose3d toPose3D(const std::vector<double>& inData)
+    {
+        if(inData.size() < 6)
+        {
+            return frc::Pose3d();
+        }
+        return frc::Pose3d(
+            frc::Translation3d(units::length::meter_t(inData[0]), units::length::meter_t(inData[1]), units::length::meter_t(inData[2])),
+            frc::Rotation3d(units::angle::radian_t(inData[3]*(M_PI/180.0)), units::angle::radian_t(inData[4]*(M_PI/180.0)),
+                   units::angle::radian_t(inData[5]*(M_PI/180.0))));
+    }
+
+    inline frc::Pose2d toPose2D(const std::vector<double>& inData)
+    {
+        if(inData.size() < 6)
+        {
+            return frc::Pose2d();
+        }
+        return frc::Pose2d(
+            frc::Translation2d(units::length::meter_t(inData[0]), units::length::meter_t(inData[1])), 
+            frc::Rotation2d(units::angle::radian_t(inData[5]*(M_PI/180.0))));
     }
 
     inline std::shared_ptr<nt::NetworkTable> getLimelightNTTable(const std::string &tableName)
@@ -66,6 +102,11 @@ namespace LimelightHelpers
     {
         return getLimelightNTDouble(limelightName, "tx");
     }
+    
+    inline double getTV(const std::string &limelightName = "")
+    {
+        return getLimelightNTDouble(limelightName, "tv");
+    }
 
     inline double getTY(const std::string &limelightName = "")
     {
@@ -84,7 +125,7 @@ namespace LimelightHelpers
 
     inline double getLatency_Capture(const std::string &limelightName = "")
     {
-        return getLimelightNTDouble(limelightName, "tl_cap");
+        return getLimelightNTDouble(limelightName, "cl");
     }
 
     inline std::string getJSONDump(const std::string &limelightName = "")
@@ -109,12 +150,17 @@ namespace LimelightHelpers
 
     inline std::vector<double> getBotpose_TargetSpace(const std::string &limelightName = "")
     {
-        return getLimelightNTDoubleArray(limelightName, "botpose_targetSpace");
+        return getLimelightNTDoubleArray(limelightName, "botpose_targetspace");
     }
 
     inline std::vector<double> getCameraPose_TargetSpace(const std::string &limelightName = "")
     {
         return getLimelightNTDoubleArray(limelightName, "camerapose_targetspace");
+    }
+
+    inline std::vector<double> getCameraPose_RobotSpace(const std::string &limelightName = "")
+    {
+        return getLimelightNTDoubleArray(limelightName, "camerapose_robotspace");
     }
 
     inline std::vector<double> getTargetPose_CameraSpace(const std::string &limelightName = "")
@@ -199,6 +245,14 @@ namespace LimelightHelpers
     /////
     /////
 
+    /**
+     * Sets the camera pose in robotspace. The UI camera pose must be set to zeros
+     */
+    inline void setCameraPose_RobotSpace(const std::string &limelightName, double forward, double side, double up, double roll, double pitch, double yaw) {
+        double entries[6] ={forward, side, up, roll, pitch, yaw};
+        setLimelightNTDoubleArray(limelightName, "camerapose_robotspace_set", entries);
+    }
+
     inline void setPythonScriptData(const std::string &limelightName, const std::vector<double> &outgoingPythonData)
     {
         setLimelightNTDoubleArray(limelightName, "llrobot", std::span{outgoingPythonData.begin(), outgoingPythonData.size()});
@@ -241,7 +295,7 @@ namespace LimelightHelpers
 
         // not included in json//
         double m_timeStamp{-1.0};
-        double m_TargetLatency{0};
+        double m_latency{0};
         double m_pipelineIndex{-1.0};
         std::vector<std::vector<double>> m_TargetCorners;
 
@@ -250,6 +304,8 @@ namespace LimelightHelpers
         std::vector<double> m_TargetTransform6DROBOTSPACE;
         std::vector<double> m_ROBOTTransform6DTARGETSPACE;
         std::vector<double> m_ROBOTTransform6DFIELDSPACE;
+        std::vector<double> m_CAMERATransform6DROBOTSPACE;
+
     };
 
     class RetroreflectiveResultClass : public SingleTargetingResultClass
@@ -300,8 +356,9 @@ namespace LimelightHelpers
         std::vector<DetectionResultClass> DetectionResults;
         std::vector<ClassificationResultClass> ClassificationResults;
         double m_timeStamp{-1.0};
-        double m_TargetLatency{0};
-        double m_JsonParseLatency{0};
+        double m_latencyPipeline{0};
+        double m_latencyCapture{0};
+        double m_latencyJSON{0};
         double m_pipelineIndex{-1.0};
         int valid{0};
         std::vector<double> botPose;
@@ -317,7 +374,8 @@ namespace LimelightHelpers
             botPose_wpired.clear();
             botPose_wpiblue.clear();
             m_timeStamp = -1.0;
-            m_TargetLatency = 0;
+            m_latencyPipeline = 0;
+
             m_pipelineIndex = -1.0;
         }
     };
@@ -330,28 +388,12 @@ namespace LimelightHelpers
         VisionResultsClass targetingResults;
     };
 
-    inline LimelightResultsClass getLatestResults(const std::string &limelightName = "", bool profile = false)
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        std::string jsonString = getJSONDump(limelightName);
-        wpi::json data = wpi::json::parse(jsonString);
-        auto end = std::chrono::high_resolution_clock::now();
-        double nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-        double millis = (nanos * 0.000001);
-
-        LimelightResultsClass out = data.get<LimelightResultsClass>();
-        out.targetingResults.m_JsonParseLatency = millis;
-        if (profile)
-        {
-            std::cout << "lljson: " << millis << std::endl;
-        }
-        return out;
-    }
-
     namespace internal
     {
         inline const std::string _key_timestamp{"ts"};
-        inline const std::string _key_latency{"tl"};
+        inline const std::string _key_latency_pipeline{"tl"};
+        inline const std::string _key_latency_capture{"cl"};
+
         inline const std::string _key_pipelineIndex{"pID"};
         inline const std::string _key_TargetXDegrees{"txdr"};
         inline const std::string _key_TargetYDegrees{"tydr"};
@@ -372,9 +414,15 @@ namespace LimelightHelpers
         inline const std::string _key_fiducialID{"fID"};
         inline const std::string _key_corners{"pts"};
         inline const std::string _key_transformCAMERAPOSE_TARGETSPACE{"t6c_ts"};
+        inline const std::string _key_transformCAMERAPOSE_ROBOTSPACE{"t6c_rs"};
+
         inline const std::string _key_transformTARGETPOSE_CAMERASPACE{"t6t_cs"};
         inline const std::string _key_transformROBOTPOSE_TARGETSPACE{"t6r_ts"};
         inline const std::string _key_transformTARGETPOSE_ROBOTSPACE{"t6t_rs"};
+
+        inline const std::string _key_botpose{"botpose"};
+        inline const std::string _key_botpose_wpiblue{"botpose_wpiblue"};
+        inline const std::string _key_botpose_wpired{"botpose_wpired"};
 
         inline const std::string _key_transformROBOTPOSE_FIELDSPACE{"t6r_fs"};
         inline const std::string _key_skew{"skew"};
@@ -383,85 +431,210 @@ namespace LimelightHelpers
         inline const std::string _key_colorHSV{"cHSV"};
     }
 
-    inline void from_json(const wpi::json &j, RetroreflectiveResultClass &t)
+    inline void PhoneHome() 
     {
-        t.m_CAMERATransform6DTARGETSPACE = j.at(internal::_key_transformCAMERAPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DCAMERASPACE = j.at(internal::_key_transformTARGETPOSE_CAMERASPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DROBOTSPACE = j.at(internal::_key_transformTARGETPOSE_ROBOTSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DTARGETSPACE = j.at(internal::_key_transformROBOTPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DFIELDSPACE = j.at(internal::_key_transformROBOTPOSE_FIELDSPACE).get<std::vector<double>>();
-        t.m_TargetXPixels = j.at(internal::_key_TargetXPixels).get<double>();
-        t.m_TargetYPixels = j.at(internal::_key_TargetYPixels).get<double>();
-        t.m_TargetXDegreesCrosshairAdjusted = j.at(internal::_key_TargetXDegreesCrosshair).get<double>();
-        t.m_TargetYDegreesCrosshairAdjusted = j.at(internal::_key_TargetYDegreesCrosshair).get<double>();
-        t.m_TargetAreaNormalized = j.at(internal::_key_TargetAreaNormalized).get<double>();
-        t.m_TargetCorners = j.at(internal::_key_corners).get<std::vector<std::vector<double>>>();
+        static int sockfd = -1;
+        static struct sockaddr_in servaddr, cliaddr;
+
+        if (sockfd == -1) {
+            sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sockfd < 0) {
+                std::cerr << "Socket creation failed" << std::endl;
+                return;
+            }
+
+            memset(&servaddr, 0, sizeof(servaddr));
+            servaddr.sin_family = AF_INET;
+            servaddr.sin_addr.s_addr = inet_addr("255.255.255.255");
+            servaddr.sin_port = htons(5809);
+
+            // Set socket for broadcast
+            int broadcast = 1;
+            if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
+                std::cerr << "Error in setting Broadcast option" << std::endl;
+                close(sockfd);
+                sockfd = -1;
+                return;
+            }
+
+            // Set socket to non-blocking
+            if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0) {
+                std::cerr << "Error setting socket to non-blocking" << std::endl;
+                close(sockfd);
+                sockfd = -1;
+                return;
+            }
+
+            const char *msg = "LLPhoneHome";
+            sendto(sockfd, msg, strlen(msg), 0, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+        }
+
+        char receiveData[1024];
+        socklen_t len = sizeof(cliaddr);
+
+        ssize_t n = recvfrom(sockfd, (char *)receiveData, 1024, 0, (struct sockaddr *) &cliaddr, &len);
+        if (n > 0) {
+            receiveData[n] = '\0'; // Null-terminate the received string
+            std::string received(receiveData, n);
+            std::cout << "Received response: " << received << std::endl;
+        } else if (n < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+            std::cerr << "Error receiving data" << std::endl;
+            close(sockfd);
+            sockfd = -1;
+        }
     }
 
-    inline void from_json(const wpi::json &j, FiducialResultClass &t)
+    inline void SetupPortForwarding(const std::string& limelightName) 
     {
-        t.m_family = j.at(internal::_key_ffamily).get<std::string>();
-        t.m_fiducialID = j.at(internal::_key_fiducialID).get<double>();
-        t.m_CAMERATransform6DTARGETSPACE = j.at(internal::_key_transformCAMERAPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DCAMERASPACE = j.at(internal::_key_transformTARGETPOSE_CAMERASPACE).get<std::vector<double>>();
-        t.m_TargetTransform6DROBOTSPACE = j.at(internal::_key_transformTARGETPOSE_ROBOTSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DTARGETSPACE = j.at(internal::_key_transformROBOTPOSE_TARGETSPACE).get<std::vector<double>>();
-        t.m_ROBOTTransform6DFIELDSPACE = j.at(internal::_key_transformROBOTPOSE_FIELDSPACE).get<std::vector<double>>();
-        t.m_TargetXPixels = j.at(internal::_key_TargetXPixels).get<double>();
-        t.m_TargetYPixels = j.at(internal::_key_TargetYPixels).get<double>();
-        t.m_TargetXDegreesCrosshairAdjusted = j.at(internal::_key_TargetXDegreesCrosshair).get<double>();
-        t.m_TargetYDegreesCrosshairAdjusted = j.at(internal::_key_TargetYDegreesCrosshair).get<double>();
-        t.m_TargetAreaNormalized = j.at(internal::_key_TargetAreaNormalized).get<double>();
-        t.m_TargetCorners = j.at(internal::_key_corners).get<std::vector<std::vector<double>>>();
+        auto& portForwarder = wpi::PortForwarder::GetInstance();
+        portForwarder.Add(5800, sanitizeName(limelightName), 5800);
+        portForwarder.Add(5801, sanitizeName(limelightName), 5801);
+        portForwarder.Add(5802, sanitizeName(limelightName), 5802);
+        portForwarder.Add(5803, sanitizeName(limelightName), 5803);
+        portForwarder.Add(5804, sanitizeName(limelightName), 5804);
+        portForwarder.Add(5805, sanitizeName(limelightName), 5805);
+        portForwarder.Add(5806, sanitizeName(limelightName), 5806);
+        portForwarder.Add(5807, sanitizeName(limelightName), 5807);
+        portForwarder.Add(5808, sanitizeName(limelightName), 5808);
+        portForwarder.Add(5809, sanitizeName(limelightName), 5809);
     }
 
-    inline void from_json(const wpi::json &j, DetectionResultClass &t)
+    template <typename T, typename KeyType>
+    T SafeJSONAccess(const wpi::json& jsonData, const KeyType& key, const T& defaultValue)
     {
-        t.m_confidence = j.at(internal::_key_confidence).get<double>();
-        t.m_classID = j.at(internal::_key_classID).get<double>();
-        t.m_className = j.at(internal::_key_className).get<std::string>();
-        t.m_TargetXPixels = j.at(internal::_key_TargetXPixels).get<double>();
-        t.m_TargetYPixels = j.at(internal::_key_TargetYPixels).get<double>();
-        t.m_TargetXDegreesCrosshairAdjusted = j.at(internal::_key_TargetXDegreesCrosshair).get<double>();
-        t.m_TargetYDegreesCrosshairAdjusted = j.at(internal::_key_TargetYDegreesCrosshair).get<double>();
-        t.m_TargetAreaNormalized = j.at(internal::_key_TargetAreaNormalized).get<double>();
-        t.m_TargetCorners = j.at(internal::_key_corners).get<std::vector<std::vector<double>>>();
+        try
+        {
+           return jsonData.at(key).template get<T>();
+        }
+        catch (wpi::json::exception& e)
+        {
+            return defaultValue;
+        }
+        catch (...)
+        {
+            return defaultValue;
+        }
+    }
+    void from_json(const wpi::json &j, RetroreflectiveResultClass &t)
+    {
+        std::vector<double> defaultValueVector(6, 0.0);
+        t.m_CAMERATransform6DTARGETSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformCAMERAPOSE_TARGETSPACE, defaultValueVector);
+        t.m_CAMERATransform6DROBOTSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformCAMERAPOSE_ROBOTSPACE, defaultValueVector);
+
+        t.m_TargetTransform6DCAMERASPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformTARGETPOSE_CAMERASPACE, defaultValueVector);
+        t.m_TargetTransform6DROBOTSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformTARGETPOSE_ROBOTSPACE, defaultValueVector);
+        t.m_ROBOTTransform6DTARGETSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformROBOTPOSE_TARGETSPACE, defaultValueVector);
+        t.m_ROBOTTransform6DFIELDSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformROBOTPOSE_FIELDSPACE, defaultValueVector);
+
+        t.m_TargetXPixels = SafeJSONAccess<double>(j, internal::_key_TargetXPixels, 0.0);
+        t.m_TargetYPixels = SafeJSONAccess<double>(j, internal::_key_TargetYPixels, 0.0);
+        t.m_TargetXDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetXDegreesCrosshair, 0.0);
+        t.m_TargetYDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetYDegreesCrosshair, 0.0);
+        t.m_TargetAreaNormalized = SafeJSONAccess<double>(j, internal::_key_TargetAreaNormalized, 0.0);
+        t.m_TargetCorners = SafeJSONAccess<std::vector<std::vector<double>>>(j, internal::_key_corners, std::vector<std::vector<double>>{});
     }
 
-    inline void from_json(const wpi::json &j, ClassificationResultClass &t)
+    void from_json(const wpi::json &j,  FiducialResultClass &t)
     {
-        t.m_confidence = j.at(internal::_key_confidence).get<double>();
-        t.m_classID = j.at(internal::_key_classID).get<double>();
-        t.m_className = j.at(internal::_key_className).get<std::string>();
-        t.m_TargetXPixels = j.at(internal::_key_TargetXPixels).get<double>();
-        t.m_TargetYPixels = j.at(internal::_key_TargetYPixels).get<double>();
-        t.m_TargetXDegreesCrosshairAdjusted = j.at(internal::_key_TargetXDegreesCrosshair).get<double>();
-        t.m_TargetYDegreesCrosshairAdjusted = j.at(internal::_key_TargetYDegreesCrosshair).get<double>();
-        t.m_TargetAreaNormalized = j.at(internal::_key_TargetAreaNormalized).get<double>();
-        t.m_TargetCorners = j.at(internal::_key_corners).get<std::vector<std::vector<double>>>();
+        std::vector<double> defaultValueVector(6, 0.0);
+        t.m_family = SafeJSONAccess<std::string>(j, internal::_key_ffamily, "");
+        t.m_fiducialID = SafeJSONAccess<double>(j, internal::_key_fiducialID, 0.0);
+        t.m_CAMERATransform6DTARGETSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformCAMERAPOSE_TARGETSPACE, defaultValueVector);
+        t.m_CAMERATransform6DROBOTSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformCAMERAPOSE_ROBOTSPACE, defaultValueVector);
+        t.m_TargetTransform6DCAMERASPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformTARGETPOSE_CAMERASPACE, defaultValueVector);
+        t.m_TargetTransform6DROBOTSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformTARGETPOSE_ROBOTSPACE, defaultValueVector);
+        t.m_ROBOTTransform6DTARGETSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformROBOTPOSE_TARGETSPACE, defaultValueVector);
+        t.m_ROBOTTransform6DFIELDSPACE = SafeJSONAccess<std::vector<double>>(j, internal::_key_transformROBOTPOSE_FIELDSPACE, defaultValueVector);
+
+        t.m_TargetXPixels = SafeJSONAccess<double>(j, internal::_key_TargetXPixels, 0.0);
+        t.m_TargetYPixels = SafeJSONAccess<double>(j, internal::_key_TargetYPixels, 0.0);
+        t.m_TargetXDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetXDegreesCrosshair, 0.0);
+        t.m_TargetYDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetYDegreesCrosshair, 0.0);
+        t.m_TargetAreaNormalized = SafeJSONAccess<double>(j, internal::_key_TargetAreaNormalized, 0.0);
+        t.m_TargetCorners = SafeJSONAccess<std::vector<std::vector<double>>>(j, internal::_key_corners, std::vector<std::vector<double>>{});
     }
 
-    inline void from_json(const wpi::json &j, VisionResultsClass &t)
+    void from_json(const wpi::json &j,  DetectionResultClass &t)
     {
-        t.m_timeStamp = j.at(internal::_key_timestamp).get<double>();
-        t.m_TargetLatency = j.at(internal::_key_latency).get<double>();
-        t.m_pipelineIndex = j.at(internal::_key_pipelineIndex).get<double>();
-        t.valid = j.at("v").get<double>();
-
-        t.botPose = j.at("botpose").get<std::vector<double>>();
-        t.botPose_wpired = j.at("botpose_wpired").get<std::vector<double>>();
-        t.botPose_wpiblue = j.at("botpose_wpiblue").get<std::vector<double>>();
-
-        t.RetroResults = j.at("Retro").get<std::vector<RetroreflectiveResultClass>>();
-        t.FiducialResults = j.at("Fiducial").get<std::vector<FiducialResultClass>>();
-        t.DetectionResults = j.at("Detector").get<std::vector<DetectionResultClass>>();
-        t.ClassificationResults = j.at("Detector").get<std::vector<ClassificationResultClass>>();
+        t.m_confidence = SafeJSONAccess<double>(j, internal::_key_confidence, 0.0);
+        t.m_classID = SafeJSONAccess<double>(j, internal::_key_classID, 0.0);
+        t.m_className = SafeJSONAccess<std::string>(j, internal::_key_className, "");
+        t.m_TargetXPixels = SafeJSONAccess<double>(j, internal::_key_TargetXPixels, 0.0);
+        t.m_TargetYPixels = SafeJSONAccess<double>(j, internal::_key_TargetYPixels, 0.0);
+        t.m_TargetXDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetXDegreesCrosshair, 0.0);
+        t.m_TargetYDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetYDegreesCrosshair, 0.0);
+        t.m_TargetAreaNormalized = SafeJSONAccess<double>(j, internal::_key_TargetAreaNormalized, 0.0);
+        t.m_TargetCorners = SafeJSONAccess<std::vector<std::vector<double>>>(j, internal::_key_corners, std::vector<std::vector<double>>{});
     }
 
-    inline void from_json(const wpi::json &j, LimelightResultsClass &t)
+    void from_json(const wpi::json &j,  ClassificationResultClass &t)
     {
-        t.targetingResults = j.at("Results").get<VisionResultsClass>();
+        t.m_confidence = SafeJSONAccess<double>(j, internal::_key_confidence, 0.0);
+        t.m_classID = SafeJSONAccess<double>(j, internal::_key_classID, 0.0);
+        t.m_className = SafeJSONAccess<std::string>(j, internal::_key_className, "");
+        t.m_TargetXPixels = SafeJSONAccess<double>(j, internal::_key_TargetXPixels, 0.0);
+        t.m_TargetYPixels = SafeJSONAccess<double>(j, internal::_key_TargetYPixels, 0.0);
+        t.m_TargetXDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetXDegreesCrosshair, 0.0);
+        t.m_TargetYDegreesCrosshairAdjusted = SafeJSONAccess<double>(j, internal::_key_TargetYDegreesCrosshair, 0.0);
+        t.m_TargetAreaNormalized = SafeJSONAccess<double>(j, internal::_key_TargetAreaNormalized, 0.0);
+        t.m_TargetCorners = SafeJSONAccess<std::vector<std::vector<double>>>(j, internal::_key_corners, std::vector<std::vector<double>>{});
+    }
+
+    void from_json(const wpi::json &j,  VisionResultsClass &t)
+    {
+        t.m_timeStamp = SafeJSONAccess<double>(j, internal::_key_timestamp, 0.0);
+        t.m_latencyPipeline = SafeJSONAccess<double>(j, internal::_key_latency_pipeline, 0.0);
+        t.m_latencyCapture = SafeJSONAccess<double>(j, internal::_key_latency_capture, 0.0);
+        t.m_pipelineIndex = SafeJSONAccess<double>(j, internal::_key_pipelineIndex, 0.0);
+        t.valid = SafeJSONAccess<double>(j, "v", 0.0);
+
+        std::vector<double> defaultVector{};
+        t.botPose = SafeJSONAccess<std::vector<double>>(j, internal::_key_botpose, defaultVector);
+        t.botPose_wpired = SafeJSONAccess<std::vector<double>>(j, internal::_key_botpose_wpired, defaultVector);
+        t.botPose_wpiblue = SafeJSONAccess<std::vector<double>>(j, internal::_key_botpose_wpiblue, defaultVector);
+
+        t.RetroResults = SafeJSONAccess<std::vector< RetroreflectiveResultClass>>(j, "Retro", std::vector< RetroreflectiveResultClass>{});
+        t.FiducialResults = SafeJSONAccess<std::vector< FiducialResultClass>>(j, "Fiducial", std::vector< FiducialResultClass>{});
+        t.DetectionResults = SafeJSONAccess<std::vector< DetectionResultClass>>(j, "Detector", std::vector< DetectionResultClass>{});
+        t.ClassificationResults = SafeJSONAccess<std::vector< ClassificationResultClass>>(j, "Detector", std::vector< ClassificationResultClass>{});
+    }
+
+    void from_json(const wpi::json &j,  LimelightResultsClass &t)
+    {
+        t.targetingResults = SafeJSONAccess<LimelightHelpers::VisionResultsClass>(j, "Results",  LimelightHelpers::VisionResultsClass{});
+    }
+
+    inline LimelightResultsClass getLatestResults(const std::string &limelightName = "", bool profile = false)
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        std::string jsonString = getJSONDump(limelightName); 
+        wpi::json data;
+        try
+        {
+            data = wpi::json::parse(jsonString);
+        }
+        catch(const std::exception& e)
+        {
+           return LimelightResultsClass();
+        }
+        
+        auto end = std::chrono::high_resolution_clock::now();
+        double nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        double millis = (nanos * 0.000001);
+        try
+        {
+            LimelightResultsClass out = data.get<LimelightHelpers::LimelightResultsClass>();
+            out.targetingResults.m_latencyJSON = millis;
+            if (profile)
+            {
+                std::cout << "lljson: " << millis << std::endl;
+            }
+            return out;
+        }
+        catch(...) 
+        {
+            return LimelightResultsClass();
+        }
     }
 }
-
 #endif // LIMELIGHTHELPERS_H
