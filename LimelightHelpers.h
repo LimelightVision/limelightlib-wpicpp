@@ -118,6 +118,11 @@ namespace LimelightHelpers
         return getLimelightNTDouble(limelightName, "ta");
     }
 
+    inline double getTV(const std::string &limelightName = "")
+    {
+        return getLimelightNTDouble(limelightName, "tv");
+    }
+
     inline double getLatency_Pipeline(const std::string &limelightName = "")
     {
         return getLimelightNTDouble(limelightName, "tl");
