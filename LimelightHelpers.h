@@ -196,6 +196,10 @@ namespace LimelightHelpers
         setLimelightNTDouble(limelightName, "pipeline", index);
     }
 
+    inline void setPriorityTagID(const std::string &limelightName, int ID) {
+        setLimelightNTDouble(limelightName, "priorityid", ID);
+    }
+
     inline void setLEDMode_PipelineControl(const std::string &limelightName)
     {
         setLimelightNTDouble(limelightName, "ledMode", 0);
