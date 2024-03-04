@@ -148,6 +148,8 @@ namespace LimelightHelpers
         return getLimelightNTDoubleArray(limelightName, "botpose_wpiblue");
     }
 
+
+
     inline std::vector<double> getBotpose_TargetSpace(const std::string &limelightName = "")
     {
         return getLimelightNTDoubleArray(limelightName, "botpose_targetspace");
@@ -183,9 +185,9 @@ namespace LimelightHelpers
         return getLimelightNTDouble(limelightName, "tid");
     }
 
-    inline double getNeuralClassID(const std::string &limelightName = "")
+    inline std::string getNeuralClassID(const std::string &limelightName = "")
     {
-        return getLimelightNTDouble(limelightName, "tclass");
+        return getLimelightNTString(limelightName, "tclass");
     }
 
     /////
@@ -200,37 +202,37 @@ namespace LimelightHelpers
         setLimelightNTDouble(limelightName, "priorityid", ID);
     }
 
-    inline void setLEDMode_PipelineControl(const std::string &limelightName)
+    inline void setLEDMode_PipelineControl(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "ledMode", 0);
     }
 
-    inline void setLEDMode_ForceOff(const std::string &limelightName)
+    inline void setLEDMode_ForceOff(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "ledMode", 1);
     }
 
-    inline void setLEDMode_ForceBlink(const std::string &limelightName)
+    inline void setLEDMode_ForceBlink(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "ledMode", 2);
     }
 
-    inline void setLEDMode_ForceOn(const std::string &limelightName)
+    inline void setLEDMode_ForceOn(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "ledMode", 3);
     }
 
-    inline void setStreamMode_Standard(const std::string &limelightName)
+    inline void setStreamMode_Standard(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "stream", 0);
     }
 
-    inline void setStreamMode_PiPMain(const std::string &limelightName)
+    inline void setStreamMode_PiPMain(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "stream", 1);
     }
 
-    inline void setStreamMode_PiPSecondary(const std::string &limelightName)
+    inline void setStreamMode_PiPSecondary(const std::string &limelightName = "")
     {
         setLimelightNTDouble(limelightName, "stream", 2);
     }
@@ -274,6 +276,59 @@ namespace LimelightHelpers
 
     /////
     /////
+
+    inline double extractBotPoseEntry(const std::vector<double>& inData, int position) {
+        if (inData.size() < static_cast<size_t>(position + 1)) {
+            return 0.0;
+        }
+        return inData[position];
+    }
+
+    class PoseEstimate
+    {
+    public:
+        frc::Pose2d pose;
+        units::time::second_t timestampSeconds{0.0};
+        double latency{0.0};
+        int tagCount{0};
+        double tagSpan{0.0};
+        double avgTagDist{0.0};
+        double avgTagArea{0.0};
+
+        PoseEstimate() = default;
+
+         PoseEstimate(const frc::Pose2d& pose, units::time::second_t timestampSeconds, double latency, int tagCount, double tagSpan, double avgTagDist, double avgTagArea)
+            : pose(pose), timestampSeconds(timestampSeconds), 
+                latency(latency), tagCount(tagCount), tagSpan(tagSpan), 
+                avgTagDist(avgTagDist), avgTagArea(avgTagArea)
+        {
+        }
+    };
+
+    inline PoseEstimate getBotPoseEstimate(const std::string& limelightName, const std::string& entryName) {
+        nt::NetworkTableEntry poseEntry = getLimelightNTTableEntry(limelightName, entryName);
+        std::vector<double> poseArray = poseEntry.GetDoubleArray(std::span<double>{});
+        frc::Pose2d pose = toPose2D(poseArray);
+
+        double latency = extractBotPoseEntry(poseArray, 6);
+        int tagCount = static_cast<int>(extractBotPoseEntry(poseArray, 7));
+        double tagSpan = extractBotPoseEntry(poseArray, 8);
+        double tagDist = extractBotPoseEntry(poseArray, 9);
+        double tagArea = extractBotPoseEntry(poseArray, 10);
+
+        // getLastChange: microseconds; latency: milliseconds
+        units::time::second_t timestamp = units::time::second_t((poseEntry.GetLastChange() / 1000000.0) - (latency / 1000.0));
+
+        return PoseEstimate(pose, timestamp, latency, tagCount, tagSpan, tagDist, tagArea);
+    }
+
+    inline PoseEstimate getBotPoseEstimate_wpiBlue(const std::string &limelightName = "") {
+        return getBotPoseEstimate(limelightName, "botpose_wpiblue");
+    }
+
+    inline PoseEstimate getBotPoseEstimate_wpiRed(const std::string &limelightName = "") {
+        return getBotPoseEstimate(limelightName, "botpose_wpired");
+    }
 
     inline const double INVALID_TARGET = 0.0;
     class SingleTargetingResultClass
@@ -365,9 +420,9 @@ namespace LimelightHelpers
         double m_latencyJSON{0};
         double m_pipelineIndex{-1.0};
         int valid{0};
-        std::vector<double> botPose;
-        std::vector<double> botPose_wpired;
-        std::vector<double> botPose_wpiblue;
+        std::vector<double> botPose{6,0.0};
+        std::vector<double> botPose_wpired{6,0.0};
+        std::vector<double> botPose_wpiblue{6,0.0};
         void Clear()
         {
             RetroResults.clear();
