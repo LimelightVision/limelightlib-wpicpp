@@ -1,12 +1,8 @@
-/* Limelight Vision custom overrides for doxygen-awesome-css
- * Forces dark mode and uses Limelight brand colors
- */
 
-/* Force dark mode by default */
+
 html {
     color-scheme: dark;
 
-    /* Limelight Green as primary color */
     --primary-color: #66bf0d;
     --primary-dark-color: #4a8a09;
     --primary-light-color: #8dd93d;
@@ -14,7 +10,6 @@ html {
 
     --link-color: #66bf0d;
 
-    /* Dark backgrounds from Limelight brand */
     --page-background-color: #111111;
     --page-foreground-color: #ffffff;
     --page-secondary-foreground-color: #888888;
@@ -29,12 +24,10 @@ html {
     --tablehead-background: #1a1a1a;
     --tablehead-foreground: #ffffff;
 
-    /* Sidebar styling */
     --side-nav-background: #1a1a1a;
     --menu-focus-foreground: #66bf0d;
     --menu-focus-background: rgba(102, 191, 13, 0.1);
 
-    /* Code blocks */
     --code-background: #1a1a1a;
     --fragment-background: #1a1a1a;
     --fragment-foreground: #ffffff;
