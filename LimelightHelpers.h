@@ -1505,7 +1505,7 @@ namespace LimelightHelpers {
     double robotYaw{0};
     double roll{0};
     double pitch{0};
-    double yaw{0};
+    double rawYaw{0};
     double gyroZ{0};
     double gyroX{0};
     double gyroY{0};
@@ -1518,7 +1518,7 @@ namespace LimelightHelpers {
         robotYaw = data[0];
         roll = data[1];
         pitch = data[2];
-        yaw = data[3];
+        rawYaw = data[3];
         gyroZ = data[4];
         gyroX = data[5];
         gyroY = data[6];
