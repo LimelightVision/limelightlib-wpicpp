@@ -1,0 +1,32 @@
+name: Generate Documentation
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+
+      - name: Generate Documentation
+        run: cd doxygen && doxygen Doxyfile
+
+      - name: Deploy to docs branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: doc
+          branch: docs
+          clean: true
+          single-commit: true
