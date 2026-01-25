@@ -1500,6 +1500,33 @@ namespace LimelightHelpers {
     std::vector<double> data;
     std::vector<double> quaternion{4, 0.0};
     double yaw{0};
+
+    // Parsed from data array
+    double robotYaw{0};
+    double roll{0};
+    double pitch{0};
+    double yaw{0};
+    double gyroZ{0};
+    double gyroX{0};
+    double gyroY{0};
+    double accelZ{0};
+    double accelX{0};
+    double accelY{0};
+
+    void parseDataArray() {
+      if (data.size() >= 10) {
+        robotYaw = data[0];
+        roll = data[1];
+        pitch = data[2];
+        yaw = data[3];
+        gyroZ = data[4];
+        gyroX = data[5];
+        gyroY = data[6];
+        accelZ = data[7];
+        accelX = data[8];
+        accelY = data[9];
+      }
+    }
   };
 
   /**
@@ -1740,6 +1767,7 @@ namespace LimelightHelpers {
     t.data = SafeJSONAccess<std::vector<double>>(j, "data", std::vector<double>{});
     t.quaternion = SafeJSONAccess<std::vector<double>>(j, "quat", std::vector<double>{0, 0, 0, 0});
     t.yaw = SafeJSONAccess<double>(j, "yaw", 0.0);
+    t.parseDataArray();
   }
 
   inline void from_json(const wpi::json& j, RewindStats& t) {
