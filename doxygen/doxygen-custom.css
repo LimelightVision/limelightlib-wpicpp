@@ -1,0 +1,328 @@
+/* Limelight Vision Custom Doxygen Theme
+ * Brand Colors:
+ * - Limelight Green: #66bf0d (primary)
+ * - Limelight Yellow: #cad730 (secondary)
+ * - Dark Background: #111
+ * - Card Background: #1a1a1a
+ * - Text Primary: #fff
+ * - Text Secondary: #888
+ */
+
+/* Dark theme base */
+html {
+    color-scheme: dark;
+}
+
+body {
+    background-color: #111;
+    color: #fff;
+}
+
+/* Navigation and sidebar */
+#side-nav, .sm-dox {
+    background-color: #1a1a1a;
+}
+
+#nav-tree {
+    background-color: #1a1a1a;
+}
+
+#nav-tree .selected {
+    background-color: #66bf0d;
+}
+
+#nav-tree a {
+    color: #fff;
+}
+
+#nav-tree .selected a {
+    color: #111;
+}
+
+/* Header and title bar */
+#titlearea {
+    background-color: #151515;
+    border-bottom: 1px solid #333;
+}
+
+#projectname {
+    color: #66bf0d;
+    font-weight: bold;
+}
+
+#projectbrief {
+    color: #888;
+}
+
+#projectnumber {
+    color: #cad730;
+}
+
+/* Main content area */
+.contents {
+    background-color: #111;
+}
+
+.header {
+    background-color: #151515;
+    border-bottom: 1px solid #333;
+}
+
+.headertitle {
+    color: #fff;
+}
+
+/* Links */
+a, a:visited {
+    color: #66bf0d;
+}
+
+a:hover {
+    color: #cad730;
+    text-decoration: underline;
+}
+
+/* Code blocks */
+div.fragment {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+pre.fragment {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+}
+
+.lineno {
+    color: #666;
+    background-color: #151515;
+    border-right: 1px solid #333;
+}
+
+/* Syntax highlighting */
+.keyword {
+    color: #cad730;
+}
+
+.keywordtype {
+    color: #66bf0d;
+}
+
+.keywordflow {
+    color: #cad730;
+}
+
+.comment {
+    color: #888;
+}
+
+.preprocessor {
+    color: #cad730;
+}
+
+.stringliteral {
+    color: #66bf0d;
+}
+
+.charliteral {
+    color: #66bf0d;
+}
+
+/* Tables */
+table.memberdecls {
+    background-color: #1a1a1a;
+    border-collapse: collapse;
+}
+
+table.memberdecls td, table.memberdecls th {
+    border: 1px solid #333;
+    padding: 8px;
+}
+
+.memItemLeft, .memItemRight, .memTemplItemLeft, .memTemplItemRight {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+}
+
+.memname {
+    color: #66bf0d;
+    font-weight: bold;
+}
+
+.memtitle {
+    background-color: #151515;
+    border-bottom: 1px solid #66bf0d;
+}
+
+.memdoc {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-top: none;
+}
+
+/* Member sections */
+.groupheader {
+    color: #66bf0d;
+    border-bottom: 1px solid #333;
+}
+
+.groupText {
+    color: #888;
+}
+
+/* Parameter documentation */
+.paramname {
+    color: #cad730;
+    font-weight: bold;
+}
+
+.paramtype {
+    color: #66bf0d;
+}
+
+dl.params dt {
+    color: #cad730;
+}
+
+dl.return dt {
+    color: #66bf0d;
+}
+
+/* Fieldtable for detailed documentation */
+.fieldtable {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+}
+
+.fieldtable th {
+    background-color: #151515;
+    color: #66bf0d;
+    border-bottom: 1px solid #333;
+}
+
+.fieldtable td {
+    border-bottom: 1px solid #333;
+    color: #fff;
+}
+
+/* Directory/file lists */
+.directory {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+}
+
+.directory td {
+    border-bottom: 1px solid #333;
+    color: #fff;
+}
+
+.directory tr.even {
+    background-color: #151515;
+}
+
+/* Search box */
+#MSearchBox {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+#MSearchField {
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+#MSearchResultsWindow {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+}
+
+.SRResult {
+    background-color: #1a1a1a;
+}
+
+.SRResult:hover {
+    background-color: #151515;
+}
+
+.SREntry a {
+    color: #66bf0d;
+}
+
+/* Tree view */
+.arrow {
+    color: #66bf0d;
+}
+
+/* Tabs */
+.tabs, .tabs2, .tabs3 {
+    background-color: #151515;
+    border-bottom: 1px solid #333;
+}
+
+.tablist li {
+    background-color: #1a1a1a;
+}
+
+.tablist li.current {
+    background-color: #66bf0d;
+}
+
+.tablist li.current a {
+    color: #111;
+}
+
+.tablist a {
+    color: #fff;
+}
+
+.tablist a:hover {
+    color: #cad730;
+}
+
+/* Splitter */
+#side-nav {
+    border-right: 1px solid #333;
+}
+
+/* Footer */
+.footer {
+    background-color: #151515;
+    border-top: 1px solid #333;
+    color: #888;
+}
+
+/* Horizontal rule */
+hr {
+    border-color: #333;
+}
+
+/* Definition lists */
+dl.section {
+    border-left: 3px solid #66bf0d;
+    padding-left: 10px;
+}
+
+dl.note {
+    border-left-color: #cad730;
+}
+
+dl.warning {
+    border-left-color: #ff4d4f;
+}
+
+/* Icons and special elements */
+.icon {
+    filter: brightness(1.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #side-nav {
+        width: 100% !important;
+    }
+}
